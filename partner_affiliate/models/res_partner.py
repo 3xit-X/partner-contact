@@ -118,7 +118,7 @@ class ResPartner(models.Model):
             res.vat = None
         return res
 
-    @api.onchange("company_type")
+    @api.onchange("parent_id", "company_type")
     def onchange_get_partner_ids_domain(self):
         if self.company_type == "person":
             domain = [("type", "in", ["affiliate", "parent_company"])]
