@@ -57,17 +57,23 @@ class ResPartner(models.Model):
     @api.depends("parent_id", "company_type")
     def _compute_type(self):
         for partner in self:
-            if partner.company_type == "person":
-                partner.type = "contact"
-                continue
-            if partner.parent_id:
-                partner.type = "affiliate"
-                continue
-            elif not partner.parent_id and partner.vat:
-                partner.type = "parent_company"
-                continue
+            partner.type = partner._get_company_type()
+
+    def _get_company_type(self):
+        self.ensure_one()
+        if self.company_type == "person":
+            partner_type = "contact"
+            return partner_type
+        else:
+            if self.parent_id:
+                partner_type = "affiliate"
+                return partner_type
+            elif self.vat and self.vat != "":
+                partner_type = "parent_company"
+                return partner_type
             else:
-                partner.type = "other"
+                partner_type = "other"
+                return partner_type
 
     def _get_name(self):
         if self.type == "affiliate":
@@ -98,15 +104,7 @@ class ResPartner(models.Model):
 
         You could argue that the same should be true for individuals.
         """
-        if self.company_type == "person":
-            desired_type = "contact"
-        elif not self.parent_id and self.company_type == "company" and self.vat:
-            desired_type = "parent_company"
-        elif self.parent_id and self.company_type == "company":
-            desired_type = "affiliate"
-        else:
-            desired_type = "other"
-        # check_if_parent_company(desired_type, self.vat)
+        desired_type = self._get_company_type()
         if self.type != desired_type:
             super().write({"type": desired_type})
         return super()._fields_sync(values)
